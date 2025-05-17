@@ -5,7 +5,9 @@ in vec2 vTexcoord;
 in vec4 vNormal;
 in vec4 vColor;
 
-out vec4 fragColor;
+layout (location = 0) out vec4 fragColor;
+layout (location = 1) out vec4 vertexColor;
+layout (location = 2) out vec4 alphaColor;
 
 uniform sampler2DRect materialTex;
 
@@ -53,5 +55,6 @@ void main() {
 	} else { //
 		fragColor = (vColor.a - 0.5) * 2 * (paperColor - fragColor) + fragColor;
 	}
-
+	vertexColor = vColor;
+	alphaColor = vec4(vColor.a, vColor.a, vColor.a, 1.0f);
 }

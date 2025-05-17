@@ -21,7 +21,7 @@ void main() {
 			// Because we're using arb tex, tex coord are actually pixel instead of normalized.
 			// Therefore, we can offset by whole pixel values.
 			vec2 offset = vec2(x, y);
-			result += texture(image, 2 * (vTexcoord + offset)).rgb * kernel[index]; // Mult by 2 b/c blurFBO is half size
+			result += texture(image, (vTexcoord + offset)).rgb * kernel[index]; // Mult by 2 b/c blurFBO is half size
 			index++;
 		}
 	}

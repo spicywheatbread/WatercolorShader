@@ -39,11 +39,10 @@ class ofApp : public ofBaseApp{
 
 		// Render Targets
 		ofFbo sceneFBO;
-		ofFbo colorFBO;
-		ofFbo alphaFBO;
 		ofFbo gaussBlurFBO;
-		ofFbo::Settings settings;
+		ofFbo bleedFBO;
 		ofFbo::Settings intermediateSettings;
+		ofFbo::Settings MRTSettings;
 		ofPixels pixels;
 
 		// Textures
@@ -54,8 +53,9 @@ class ofApp : public ofBaseApp{
 
 		// Shaders
 		shared_ptr<ofShader> firstPass;
-		shared_ptr<ofShader> colorPass;
-		shared_ptr<ofShader> alphaPass;
 		shared_ptr<ofShader> gaussBlurPass;
+		shared_ptr<ofShader> hBleedPass;
+		shared_ptr<ofShader> vBleedPass;
 		bool isShaderDirty;
+
 };

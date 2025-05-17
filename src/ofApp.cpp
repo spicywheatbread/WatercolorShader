@@ -3,6 +3,7 @@
 #include "ofImage.h"
 #include "ofTexture.h"
 #include "ofUtils.h"
+#include <cmath>
 
 //--------------------------------------------------------------
 void ofApp::setup() {
@@ -50,22 +51,23 @@ void ofApp::setup() {
 
 	// FBO Setup //
 	//
-	settings.width = ofGetWidth(); // Some of the later passes are okay with lower resolutions...
-	settings.height = ofGetHeight();
-	settings.useDepth = true;
-	settings.depthStencilAsTexture = true;
-	settings.internalformat = GL_RGBA;
+	MRTSettings.width = ofGetWidth();
+	MRTSettings.height = ofGetHeight();
+	MRTSettings.internalformat = GL_RGBA;
+	MRTSettings.useDepth = true;
+	MRTSettings.depthStencilAsTexture = true;
 
-	sceneFBO.allocate(settings); // Using multiple FBOs because figuring out MRT seems annoying (DOCUMENTATION SUX)
-	colorFBO.allocate(settings);
-	alphaFBO.allocate(settings);
+	sceneFBO.allocate(MRTSettings);
+	sceneFBO.createAndAttachTexture(GL_RGBA, 1);
+	sceneFBO.createAndAttachTexture(GL_RGBA, 2);
 
 	// Intermediate Image FBO's are allocated with half resolution
-	intermediateSettings.width = ofGetWidth() / 2;
-	intermediateSettings.height = ofGetHeight() / 2;
+	intermediateSettings.width = ofGetWidth();
+	intermediateSettings.height = ofGetHeight();
 	intermediateSettings.useDepth = true;
 	intermediateSettings.internalformat = GL_RGBA;
 	gaussBlurFBO.allocate(intermediateSettings);
+	bleedFBO.allocate(intermediateSettings);
 
 	// Shader Setup //
 	//
@@ -73,22 +75,6 @@ void ofApp::setup() {
 	firstPass->load("shaders/objSpace");
 
 	GLint err = glGetError();
-	if (err != GL_NO_ERROR){
-		ofLogNotice() << "Load Shader came back with GL error:	" << err;
-	}
-
-	colorPass = shared_ptr<ofShader>(new ofShader()); // This is a really simple shader so I just initialize once.
-	colorPass->load("shaders/colorImage");
-
-	err = glGetError();
-	if (err != GL_NO_ERROR){
-		ofLogNotice() << "Load Shader came back with GL error:	" << err;
-	}
-
-	alphaPass = shared_ptr<ofShader>(new ofShader()); // This is a really simple shader so I just initialize once.
-	alphaPass->load("shaders/alphaImage");
-
-	err = glGetError();
 	if (err != GL_NO_ERROR){
 		ofLogNotice() << "Load Shader came back with GL error:	" << err;
 	}
@@ -101,8 +87,17 @@ void ofApp::setup() {
 		ofLogNotice() << "Load Shader came back with GL error:	" << err;
 	}
 
+	hBleedPass = shared_ptr<ofShader>(new ofShader()); // This is a really simple shader so I just initialize once.
+	hBleedPass->load("shaders/bleed.vert", "shaders/horizontalBleed.frag");
+
+	err = glGetError();
+	if (err != GL_NO_ERROR){
+		ofLogNotice() << "Load Shader came back with GL error:	" << err;
+	}
+
 	isShaderDirty = false;
 	drawToScreen = 1;
+
 }
 
 //--------------------------------------------------------------
@@ -123,7 +118,6 @@ void ofApp::update() {
 }
 
 void ofApp::drawScene() { // TODO: Possibly just pass in the shader to set the uniform texture. Doesn't break right now, just bad coding practice.
-	ofClear(0, 0, 0, 0);
 	camera.begin();
 
 	firstPass->setUniformTexture("materialTex", orangeTex, 0);
@@ -145,6 +139,8 @@ void ofApp::draw(){
 
 	// Render scene normally //
 	sceneFBO.begin();
+	sceneFBO.activateAllDrawBuffers();
+	ofClear(0, 0, 0, 0);
 
 	firstPass->begin();
 	firstPass->setUniform1f("time", ofGetElapsedTimef());
@@ -160,38 +156,26 @@ void ofApp::draw(){
 	firstPass->end();
 	sceneFBO.end();
 
-	// Render vertex color control image //
-	colorFBO.begin();
-	colorPass->begin();
-	drawScene();
-	colorPass->end();
-	colorFBO.end();
-
-	// Render Alpha Image b/c it looks cool //
-	alphaFBO.begin();
-	alphaPass->begin();
-	drawScene();
-	alphaPass->end();
-	alphaFBO.end();
-
 	// Render gaussian blur //
+	// TODO: Fix output of gaussian blur. It got messed up with the MRT.
 	gaussBlurFBO.begin();
 	ofClear(0, 0, 0, 0);
 	gaussBlurPass->begin();
-	gaussBlurPass->setUniformTexture("image", sceneFBO.getTexture(), 0);
-	sceneFBO.draw(0, 0);
+	gaussBlurPass->setUniformTexture("image", sceneFBO.getTexture(0), 0);
+	ofTexture& result = sceneFBO.getTexture(0);
+	result.draw(0, 0);
 	gaussBlurPass->end();
 	gaussBlurFBO.end();
 
 	switch(drawToScreen) {
 		case 1:
-			sceneFBO.draw(0, 0);
+			sceneFBO.getTexture(0).draw(0, 0);
 			break;
 		case 2:
-			colorFBO.draw(0, 0);
+			sceneFBO.getTexture(1).draw(0, 0);
 			break;
 		case 3:
-			alphaFBO.draw(0, 0);
+			sceneFBO.getTexture(2).draw(0, 0);
 			break;
 		case 4:
 			gaussBlurFBO.draw(0, 0);
@@ -217,7 +201,7 @@ void ofApp::keyPressed(int key){
 			camera.enableMouseInput();
 		break;
     case 's':
-		sceneFBO.readToPixels(pixels);
+		sceneFBO.getTexture(0).readToPixels(pixels);
 		ofSaveImage(pixels, "fbo.png", OF_IMAGE_QUALITY_BEST);
 		break;
 	case 'R':
