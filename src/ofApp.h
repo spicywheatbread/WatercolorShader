@@ -33,6 +33,8 @@ class ofApp : public ofBaseApp{
 		ofSpherePrimitive controlSphere;
 		ofPlanePrimitive groundPlane;
 		ofPlanePrimitive backPlane;
+		ofPlanePrimitive drawPlane;
+		ofMesh fullscreenQuad;
 		float planeSize = 100;
 
 		int drawToScreen; // Preview output switch var
@@ -41,6 +43,8 @@ class ofApp : public ofBaseApp{
 		ofFbo sceneFBO;
 		ofFbo gaussBlurFBO;
 		ofFbo bleedFBO;
+		ofFbo finalBleedFBO;
+		ofFbo stylizeFBO;
 		ofFbo::Settings intermediateSettings;
 		ofFbo::Settings MRTSettings;
 		ofPixels pixels;
@@ -56,6 +60,8 @@ class ofApp : public ofBaseApp{
 		shared_ptr<ofShader> gaussBlurPass;
 		shared_ptr<ofShader> hBleedPass;
 		shared_ptr<ofShader> vBleedPass;
+		shared_ptr<ofShader> stylizePass;
 		bool isShaderDirty;
+
 
 };

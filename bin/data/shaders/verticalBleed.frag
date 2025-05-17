@@ -19,7 +19,7 @@ const float depthThreshold = 0.001;
 void main() {
 	fragColor = vec4(0, 0, 0, 1);
 	for(int i = -10; i <= 10; i++) { // Range of vertices we will sample for the bleed
-		vec2 offsetTexcoord = vec2(vTexcoord.x + i, vTexcoord.y);
+		vec2 offsetTexcoord = vec2(vTexcoord.x, vTexcoord.y + i);
 		if(texture(controlImage, vTexcoord).b > 0 || texture(controlImage, offsetTexcoord).b > 0) { // Control mask blue channel indicates if we allow bleeding
 			bool bleed = false;
 			bool sourceBehind = false;

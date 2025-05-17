@@ -12,6 +12,7 @@ void ofApp::setup() {
 	ofEnableDepthTest();
 	ofDisableAlphaBlending();
 	ofEnableArbTex();
+	cout << "using normalized texcoord: " << ofGetUsingNormalizedTexCoords() << "\n";
 
 	// Images //
 	//
@@ -47,7 +48,7 @@ void ofApp::setup() {
 	backPlane.setWidth(planeSize);
 	backPlane.setHeight(planeSize);
 	backPlane.mapTexCoordsFromTexture(woodTex);
-	backPlane.getMesh().setColorForIndices(0, backPlane.getMesh().getNumIndices(), ofColor(100, 100, 100, 100));
+	backPlane.getMesh().setColorForIndices(0, backPlane.getMesh().getNumIndices(), ofColor(100, 100, 0, 100));
 
 	// FBO Setup //
 	//
@@ -64,10 +65,16 @@ void ofApp::setup() {
 	// Intermediate Image FBO's are allocated with half resolution
 	intermediateSettings.width = ofGetWidth();
 	intermediateSettings.height = ofGetHeight();
-	intermediateSettings.useDepth = true;
 	intermediateSettings.internalformat = GL_RGBA;
+	intermediateSettings.useDepth = true;
+	intermediateSettings.depthStencilAsTexture = true;
+
 	gaussBlurFBO.allocate(intermediateSettings);
 	bleedFBO.allocate(intermediateSettings);
+	bleedFBO.createAndAttachTexture(GL_RGBA, 1);
+	finalBleedFBO.allocate(intermediateSettings);
+	finalBleedFBO.createAndAttachTexture(GL_RGBA, 1);
+	stylizeFBO.allocate(intermediateSettings);
 
 	// Shader Setup //
 	//
@@ -95,6 +102,22 @@ void ofApp::setup() {
 		ofLogNotice() << "Load Shader came back with GL error:	" << err;
 	}
 
+	vBleedPass = shared_ptr<ofShader>(new ofShader()); // This is a really simple shader so I just initialize once.
+	vBleedPass->load("shaders/bleed.vert", "shaders/verticalBleed.frag");
+
+	err = glGetError();
+	if (err != GL_NO_ERROR){
+		ofLogNotice() << "Load Shader came back with GL error:	" << err;
+	}
+
+	stylizePass = shared_ptr<ofShader>(new ofShader()); // This is a really simple shader so I just initialize once.
+	stylizePass->load("shaders/bleed.vert", "shaders/verticalBleed.frag");
+
+	err = glGetError();
+	if (err != GL_NO_ERROR){
+		ofLogNotice() << "Load Shader came back with GL error:	" << err;
+	}
+
 	isShaderDirty = false;
 	drawToScreen = 1;
 
@@ -104,9 +127,9 @@ void ofApp::setup() {
 void ofApp::update() {
 	// Support reloading for any shader I'm currently working on.
 	if(isShaderDirty) {
-		ofLogNotice("Reloading Shader");
-		gaussBlurPass = shared_ptr<ofShader>(new ofShader());
-		gaussBlurPass->load("shaders/gaussianBlur");
+		ofLogNotice() << "Reloading Shader" << "\n";
+		vBleedPass = shared_ptr<ofShader>(new ofShader());
+		vBleedPass->load("shaders/bleed.vert", "shaders/verticalBleed.frag");
 
 		GLint err = glGetError();
 		if (err != GL_NO_ERROR){
@@ -115,6 +138,25 @@ void ofApp::update() {
 
 		isShaderDirty = false;
 	}
+
+    fullscreenQuad.clear();
+    fullscreenQuad.setMode(OF_PRIMITIVE_TRIANGLE_STRIP);
+
+    // Top-left
+    fullscreenQuad.addVertex(glm::vec3(0, 0, 0));
+    fullscreenQuad.addTexCoord(glm::vec2(0, 0));
+
+    // Top-right
+    fullscreenQuad.addVertex(glm::vec3(ofGetWidth(), 0, 0));
+    fullscreenQuad.addTexCoord(glm::vec2(ofGetWidth(), 0));
+
+    // Bottom-left
+    fullscreenQuad.addVertex(glm::vec3(0, ofGetHeight(), 0));
+    fullscreenQuad.addTexCoord(glm::vec2(0, ofGetHeight()));
+
+    // Bottom-right
+    fullscreenQuad.addVertex(glm::vec3(ofGetWidth(), ofGetHeight(), 0));
+    fullscreenQuad.addTexCoord(glm::vec2(ofGetWidth(), ofGetHeight()));
 }
 
 void ofApp::drawScene() { // TODO: Possibly just pass in the shader to set the uniform texture. Doesn't break right now, just bad coding practice.
@@ -167,6 +209,28 @@ void ofApp::draw(){
 	gaussBlurPass->end();
 	gaussBlurFBO.end();
 
+	bleedFBO.begin();
+	bleedFBO.activateAllDrawBuffers();
+	ofClear(0, 0, 0, 0);
+	hBleedPass->begin();
+	hBleedPass->setUniformTexture("colorImage", sceneFBO.getTexture(0), 1);
+	hBleedPass->setUniformTexture("depthImage", sceneFBO.getDepthTexture(), 2);
+	hBleedPass->setUniformTexture("controlImage", sceneFBO.getTexture(1), 3);
+	fullscreenQuad.draw();
+	hBleedPass->end();
+	bleedFBO.end();
+
+	finalBleedFBO.begin();
+	finalBleedFBO.activateAllDrawBuffers();
+	ofClear(0, 0, 0, 0);
+	vBleedPass->begin();
+	vBleedPass->setUniformTexture("colorImage", bleedFBO.getTexture(0), 1);
+	vBleedPass->setUniformTexture("depthImage", sceneFBO.getDepthTexture(), 2);
+	vBleedPass->setUniformTexture("controlImage", bleedFBO.getTexture(1), 3);
+	fullscreenQuad.draw();
+	vBleedPass->end();
+	finalBleedFBO.end();
+
 	switch(drawToScreen) {
 		case 1:
 			sceneFBO.getTexture(0).draw(0, 0);
@@ -179,6 +243,14 @@ void ofApp::draw(){
 			break;
 		case 4:
 			gaussBlurFBO.draw(0, 0);
+			break;
+		case 5:
+			finalBleedFBO.getTexture(0).draw(0, 0);
+			break;
+		case 6:
+			finalBleedFBO.getTexture(1).draw(0, 0);
+			break;
+		case 7:
 			break;
 	}
 
@@ -201,7 +273,7 @@ void ofApp::keyPressed(int key){
 			camera.enableMouseInput();
 		break;
     case 's':
-		sceneFBO.getTexture(0).readToPixels(pixels);
+		bleedFBO.getTexture(0).readToPixels(pixels);
 		ofSaveImage(pixels, "fbo.png", OF_IMAGE_QUALITY_BEST);
 		break;
 	case 'R':
@@ -219,6 +291,15 @@ void ofApp::keyPressed(int key){
 		break;
 	case '4':
 		drawToScreen = 4;
+		break;
+	case '5':
+		drawToScreen =  5;
+		break;
+	case '6':
+		drawToScreen = 6;
+		break;
+	case '7':
+		drawToScreen = 7;
 		break;
 	}
 }
