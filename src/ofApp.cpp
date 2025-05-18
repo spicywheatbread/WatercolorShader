@@ -7,12 +7,11 @@
 
 //--------------------------------------------------------------
 void ofApp::setup() {
-	// OpenFrameworks Global Settings // ------------------------------------------
+	// OpenFrameworks Global Settings //
 	//
 	ofEnableDepthTest();
 	ofDisableAlphaBlending();
-	ofEnableArbTex();
-	cout << "using normalized texcoord: " << ofGetUsingNormalizedTexCoords() << "\n";
+	ofEnableArbTex(); // Currently using non power of two textures;
 
 	// Images //
 	//
@@ -21,9 +20,10 @@ void ofApp::setup() {
 	ofLoadImage(blankTex, "textures/blank.png");
 	noiseTex.load("textures/noise3.jpg"); // noiseTex is different b/c we need to directly access the pixels and im lazy.
 
-	// Scene setup // ------------------------------------------
+	// Scene setup //
 	//
 	camera.setPosition(0, 10, 20);
+
 	sphere.setPosition(glm::vec3(-4, 3, 0));
 	sphere.setResolution(20);
 	sphere.setRadius(3);
@@ -33,16 +33,15 @@ void ofApp::setup() {
 	controlSphere.setPosition(4, 3, 0);
 	controlSphere.setResolution(20);
 	controlSphere.setRadius(3);
-	ofMesh& sphereMesh = controlSphere.getMesh();
 	controlSphere.mapTexCoordsFromTexture(noiseTex.getTexture());
 
+	ofMesh& sphereMesh = controlSphere.getMesh();
 	for(int i = 0; i < sphereMesh.getNumVertices(); i++) { // Set vertex colors for render parameters
 		glm::vec2 texcoord = sphereMesh.getTexCoord(i);
 		ofColor noise = noiseTex.getColor(texcoord.x, texcoord.y);
 		float magnitude = (noise.r + noise.g + noise.b + noise.a) / 4.0f;
 		sphereMesh.addColor(ofColor(0, 0, 255, magnitude));
 	}
-
 	controlSphere.mapTexCoordsFromTexture(orangeTex);
 
 	backPlane.setWidth(planeSize);
@@ -62,7 +61,7 @@ void ofApp::setup() {
 	sceneFBO.createAndAttachTexture(GL_RGBA, 1);
 	sceneFBO.createAndAttachTexture(GL_RGBA, 2);
 
-	// Intermediate Image FBO's are allocated with half resolution
+	// Intermediate Image FBO's are allocated with half resolution (NOT REALLY; they CAN be but lowkey for ease of use they're the same size.)
 	intermediateSettings.width = ofGetWidth();
 	intermediateSettings.height = ofGetHeight();
 	intermediateSettings.internalformat = GL_RGBA;
@@ -111,7 +110,7 @@ void ofApp::setup() {
 	}
 
 	stylizePass = shared_ptr<ofShader>(new ofShader()); // This is a really simple shader so I just initialize once.
-	stylizePass->load("shaders/bleed.vert", "shaders/verticalBleed.frag");
+	stylizePass->load("shaders/stylize");
 
 	err = glGetError();
 	if (err != GL_NO_ERROR){
@@ -119,17 +118,16 @@ void ofApp::setup() {
 	}
 
 	isShaderDirty = false;
-	drawToScreen = 1;
-
+	drawToScreen = 7;
 }
 
 //--------------------------------------------------------------
 void ofApp::update() {
-	// Support reloading for any shader I'm currently working on.
+	// Support reloading for the shader I'm currently working on.
 	if(isShaderDirty) {
 		ofLogNotice() << "Reloading Shader" << "\n";
-		vBleedPass = shared_ptr<ofShader>(new ofShader());
-		vBleedPass->load("shaders/bleed.vert", "shaders/verticalBleed.frag");
+		stylizePass = shared_ptr<ofShader>(new ofShader());
+		stylizePass->load("shaders/stylize");
 
 		GLint err = glGetError();
 		if (err != GL_NO_ERROR){
@@ -139,38 +137,28 @@ void ofApp::update() {
 		isShaderDirty = false;
 	}
 
+	// Blank full screen quad to make the shaders render.
     fullscreenQuad.clear();
     fullscreenQuad.setMode(OF_PRIMITIVE_TRIANGLE_STRIP);
 
-    // Top-left
     fullscreenQuad.addVertex(glm::vec3(0, 0, 0));
     fullscreenQuad.addTexCoord(glm::vec2(0, 0));
 
-    // Top-right
     fullscreenQuad.addVertex(glm::vec3(ofGetWidth(), 0, 0));
     fullscreenQuad.addTexCoord(glm::vec2(ofGetWidth(), 0));
 
-    // Bottom-left
     fullscreenQuad.addVertex(glm::vec3(0, ofGetHeight(), 0));
     fullscreenQuad.addTexCoord(glm::vec2(0, ofGetHeight()));
 
-    // Bottom-right
     fullscreenQuad.addVertex(glm::vec3(ofGetWidth(), ofGetHeight(), 0));
     fullscreenQuad.addTexCoord(glm::vec2(ofGetWidth(), ofGetHeight()));
 }
 
-void ofApp::drawScene() { // TODO: Possibly just pass in the shader to set the uniform texture. Doesn't break right now, just bad coding practice.
+void ofApp::drawScene() {
 	camera.begin();
 
-	firstPass->setUniformTexture("materialTex", orangeTex, 0);
 	sphere.draw();
 	controlSphere.draw();
-
-	ofPushMatrix();
-	ofRotateXDeg(90);
-	firstPass->setUniformTexture("materialTex", woodTex, 0);
-	backPlane.draw();
-	ofPopMatrix();
 
 	camera.end();
 }
@@ -186,12 +174,10 @@ void ofApp::draw(){
 
 	firstPass->begin();
 	firstPass->setUniform1f("time", ofGetElapsedTimef());
-	firstPass->setUniform1f("speed", 1.0f);
-	firstPass->setUniform1f("freq", 1.0f);
-	firstPass->setUniform1f("tremor", 50.0f);
 	firstPass->setUniform1f("pixelSize", 1.0f / ofGetWidth());
 	firstPass->setUniform3f("cameraPos", camera.getGlobalPosition());
 	firstPass->setUniform3f("lightPosition", glm::vec3(5.0f, 5.0f ,5.0f));
+	firstPass->setUniformTexture("materialTex", orangeTex, 0);
 
 	drawScene();
 
@@ -199,39 +185,63 @@ void ofApp::draw(){
 	sceneFBO.end();
 
 	// Render gaussian blur //
-	// TODO: Fix output of gaussian blur. It got messed up with the MRT.
 	gaussBlurFBO.begin();
 	ofClear(0, 0, 0, 0);
+
 	gaussBlurPass->begin();
 	gaussBlurPass->setUniformTexture("image", sceneFBO.getTexture(0), 0);
-	ofTexture& result = sceneFBO.getTexture(0);
-	result.draw(0, 0);
+
+	sceneFBO.getTexture(0).draw(0, 0);
+
 	gaussBlurPass->end();
 	gaussBlurFBO.end();
 
+	// Render horizontal bleed //
 	bleedFBO.begin();
 	bleedFBO.activateAllDrawBuffers();
 	ofClear(0, 0, 0, 0);
+
 	hBleedPass->begin();
 	hBleedPass->setUniformTexture("colorImage", sceneFBO.getTexture(0), 1);
 	hBleedPass->setUniformTexture("depthImage", sceneFBO.getDepthTexture(), 2);
 	hBleedPass->setUniformTexture("controlImage", sceneFBO.getTexture(1), 3);
+
 	fullscreenQuad.draw();
+
 	hBleedPass->end();
 	bleedFBO.end();
 
+	// Render vertical bleed
 	finalBleedFBO.begin();
 	finalBleedFBO.activateAllDrawBuffers();
 	ofClear(0, 0, 0, 0);
+
 	vBleedPass->begin();
 	vBleedPass->setUniformTexture("colorImage", bleedFBO.getTexture(0), 1);
 	vBleedPass->setUniformTexture("depthImage", sceneFBO.getDepthTexture(), 2);
 	vBleedPass->setUniformTexture("controlImage", bleedFBO.getTexture(1), 3);
+
 	fullscreenQuad.draw();
+
 	vBleedPass->end();
 	finalBleedFBO.end();
 
-	switch(drawToScreen) {
+	// Final stylization pass: color bleed, edge darkening, paper tex
+	stylizeFBO.begin();
+	ofClear(0, 0, 0, 0);
+
+	stylizePass->begin();
+	stylizePass->setUniformTexture("colorImage", sceneFBO.getTexture(0), 1);
+	stylizePass->setUniformTexture("blurImage", gaussBlurFBO.getTexture(), 2);
+	stylizePass->setUniformTexture("bleedImage", finalBleedFBO.getTexture(0), 3);
+	stylizePass->setUniformTexture("controlImage", finalBleedFBO.getTexture(1), 4);
+
+	fullscreenQuad.draw();
+
+	stylizePass->end();
+	stylizeFBO.end();
+
+	switch(drawToScreen) { // Switch various stage outputs
 		case 1:
 			sceneFBO.getTexture(0).draw(0, 0);
 			break;
@@ -251,6 +261,7 @@ void ofApp::draw(){
 			finalBleedFBO.getTexture(1).draw(0, 0);
 			break;
 		case 7:
+			stylizeFBO.draw(0, 0);
 			break;
 	}
 

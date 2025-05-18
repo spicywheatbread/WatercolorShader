@@ -14,11 +14,12 @@ out vec4 vNormal;
 out vec4 vColor;
 
 uniform float time; // Global time counter
-uniform float speed; // Speed that noise updates
-uniform float freq; // Sin wave frequency
-uniform float tremor; // Sin wave amplitude
 uniform float pixelSize; // Rough pixel size estimate to scale hand tremor
 uniform vec3 cameraPos;
+
+const float speed = 1.0f; // Speed that noise updates
+const float freq = 1.0f; // Sin wave frequency
+const float tremor = 50.0f; // Sin wave amplitude
 
 void main() {
 	// unused; edgeFactor can be used to modululate whether the noise only occurs at object edges if desired.

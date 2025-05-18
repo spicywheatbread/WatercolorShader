@@ -45,6 +45,7 @@ class ofApp : public ofBaseApp{
 		ofFbo bleedFBO;
 		ofFbo finalBleedFBO;
 		ofFbo stylizeFBO;
+		ofFbo paperFBO;
 		ofFbo::Settings intermediateSettings;
 		ofFbo::Settings MRTSettings;
 		ofPixels pixels;
@@ -57,6 +58,7 @@ class ofApp : public ofBaseApp{
 
 		// Shaders
 		shared_ptr<ofShader> firstPass;
+		shared_ptr<ofShader> paperPass;
 		shared_ptr<ofShader> gaussBlurPass;
 		shared_ptr<ofShader> hBleedPass;
 		shared_ptr<ofShader> vBleedPass;
