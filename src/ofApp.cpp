@@ -18,8 +18,9 @@ void ofApp::setup() {
 	orangeTex.load("textures/orange.png");
 	planeColorImg.load("textures/planecolors.png");
 	noiseTex.load("textures/noise.jpg");
+	fabricTex.load("textures/fabric.jpg");
 
-	camera.setPosition(0, 10, 20);
+	camera.setPosition(0, 10, 30);
 
 	sphere.setPosition(glm::vec3(-4, 3, 0));
 	sphere.setResolution(20);
@@ -54,6 +55,7 @@ void ofApp::setup() {
 		ofColor col = planeColorImg.getColor(u, v);
 		planeMesh.addColor(col);
 	}
+	groundPlane.mapTexCoordsFromTexture(fabricTex.getTexture());
 
 	// FBO Setup //
 	//
@@ -170,9 +172,26 @@ void ofApp::drawScene() {
 	controlSphere.draw();
 
 	ofPushMatrix();
+	ofTranslate(glm::vec3(0, 8, 0));
+	orangeTex.bind();
+	sphere.draw();
+	controlSphere.draw();
+	orangeTex.unbind();
+	ofPopMatrix();
+
+	fabricTex.bind();
+	ofPushMatrix();
+	ofTranslate(glm::vec3(0, 0, -planeSize / 2));
+	ofScale(2);
+	groundPlane.draw();
+	ofPopMatrix();
+
+
+	ofPushMatrix();
 	ofRotateXDeg(90);
 	groundPlane.draw();
 	ofPopMatrix();
+	fabricTex.unbind();
 
 	camera.end();
 }
@@ -191,7 +210,6 @@ void ofApp::draw(){
 	firstPass->setUniform1f("pixelSize", 1.0f / ofGetWidth());
 	firstPass->setUniform3f("cameraPos", camera.getGlobalPosition());
 	firstPass->setUniform3f("lightPosition", glm::vec3(5.0f, 5.0f ,5.0f));
-	firstPass->setUniformTexture("materialTex", orangeTex.getTexture(), 0);
 
 	drawScene();
 

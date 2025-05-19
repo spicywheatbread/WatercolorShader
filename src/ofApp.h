@@ -53,6 +53,7 @@ class ofApp : public ofBaseApp{
 		ofImage orangeTex;
 		ofImage noiseTex;
 		ofImage planeColorImg;
+		ofImage fabricTex;
 
 		// Shaders
 		shared_ptr<ofShader> firstPass;

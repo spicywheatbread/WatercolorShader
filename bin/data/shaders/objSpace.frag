@@ -9,7 +9,7 @@ layout (location = 0) out vec4 fragColor;
 layout (location = 1) out vec4 vertexColor;
 layout (location = 2) out vec4 alphaColor;
 
-uniform sampler2D materialTex;
+uniform sampler2D tex0;
 
 uniform vec3 lightPosition;
 
@@ -29,7 +29,7 @@ void main() {
 	float diff = max(dot(lightDir, vNormal.xyz), 0.0f);
 	float da = (diff + diluteArea - 1) / (diluteArea);
 
-	vec4 baseColor = texture(materialTex, vTexcoord);
+	vec4 baseColor = texture(tex0, vTexcoord);
 	vec4 cangianteColor = baseColor + (da * cangiante);
 	fragColor = dilute * da * (paperColor - cangianteColor) + cangianteColor;
 
