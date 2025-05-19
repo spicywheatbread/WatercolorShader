@@ -21,9 +21,12 @@ void ofApp::setup() {
 	fabricTex.load("textures/fabric.jpg");
 	paperTex.load("textures/paper.png");
 	paperNormalTex.load("textures/paper-normal.png");
+
+	// Load dog model and tex
 	dogTex.load("dog.png");
 	dogModel.load("dog.fbx");
 
+	// Scene elements
 	camera.setPosition(0, 10, 30);
 
 	sphere.setPosition(glm::vec3(-4, 3, 0));

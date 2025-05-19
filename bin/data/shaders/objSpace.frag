@@ -15,13 +15,10 @@ uniform vec3 lightPosition;
 
 
 void main() {
-	// Implement custom reflectance model from paper
-	// Custom control variables
-	// TODO: Turn these into uniforms, just testing for now.
-	float diluteArea = 1; // (0, 1]; Affects overall brightness I think?
+	float diluteArea = 1; // (0, 1]; Affects diffuse factor
 	float dilute = 0.2; // [0, 1]
 	float cangiante = 0.5; // [0, 1] ; Affects interpolation towards hue
-	// vec4 paperColor = vec4(1.0f, 1.0f, 1.0f, 1.0f); // White paper color
+
 	 vec4 paperColor = vec4(241.0f / 255.0f, 230.0f / 255.0f, 207.0f / 255.0f, 1.0f); // Parchment Paper color
 
 	// Step 1: Dilute Area
@@ -36,7 +33,7 @@ void main() {
 	// Pigment Turbulence / Paper Fade: We use the alpha var to switch between these behaviors.
 	if(vColor.a < 0.5) { // Exponential attenuation
 		fragColor = pow(fragColor, vec4(3 - (vColor.a * 4)));
-	} else { //
+	} else { // Fade to paper color
 		fragColor = (vColor.a - 0.5) * 2 * (paperColor - fragColor) + fragColor;
 	}
 	vertexColor = vColor;
