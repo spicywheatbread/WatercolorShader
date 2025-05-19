@@ -11,23 +11,20 @@ void ofApp::setup() {
 	//
 	ofEnableDepthTest();
 	ofDisableAlphaBlending();
-	ofEnableArbTex(); // Currently using non power of two textures;
+	ofDisableArbTex();
 
 	// Images //
 	//
-	ofLoadImage(woodTex, "textures/wood.jpg");
-	ofLoadImage(orangeTex, "textures/orange.png");
-	ofLoadImage(blankTex, "textures/blank.png");
-	noiseTex.load("textures/noise3.jpg"); // noiseTex is different b/c we need to directly access the pixels and im lazy.
+	orangeTex.load("textures/orange.png");
+	planeColorImg.load("textures/planecolors.png");
+	noiseTex.load("textures/noise.jpg");
 
-	// Scene setup //
-	//
 	camera.setPosition(0, 10, 20);
 
 	sphere.setPosition(glm::vec3(-4, 3, 0));
 	sphere.setResolution(20);
 	sphere.setRadius(3);
-	sphere.mapTexCoordsFromTexture(orangeTex);
+	sphere.mapTexCoordsFromTexture(orangeTex.getTexture());
 	sphere.getMesh().setColorForIndices(0, sphere.getMesh().getNumIndices(), ofColor(0, 0, 122, 122));
 
 	controlSphere.setPosition(4, 3, 0);
@@ -37,36 +34,48 @@ void ofApp::setup() {
 
 	ofMesh& sphereMesh = controlSphere.getMesh();
 	for(int i = 0; i < sphereMesh.getNumVertices(); i++) { // Set vertex colors for render parameters
-		glm::vec2 texcoord = sphereMesh.getTexCoord(i);
-		ofColor noise = noiseTex.getColor(texcoord.x, texcoord.y);
+		glm::vec2 texcoord = sphereMesh.getTexCoord(i); // Using normalized texcoords means need to convert to pixels
+		int u = texcoord.x * (noiseTex.getWidth() - 1);
+		int v = texcoord.y * (noiseTex.getHeight() - 1);
+		ofColor noise = noiseTex.getColor(u, v);
 		float magnitude = (noise.r + noise.g + noise.b + noise.a) / 4.0f;
 		sphereMesh.addColor(ofColor(0, 0, 255, magnitude));
 	}
-	controlSphere.mapTexCoordsFromTexture(orangeTex);
+	controlSphere.mapTexCoordsFromTexture(orangeTex.getTexture());
 
-	backPlane.setWidth(planeSize);
-	backPlane.setHeight(planeSize);
-	backPlane.mapTexCoordsFromTexture(woodTex);
-	backPlane.getMesh().setColorForIndices(0, backPlane.getMesh().getNumIndices(), ofColor(100, 100, 0, 100));
+	groundPlane.set(planeSize, planeSize, 50, 50);
+	groundPlane.mapTexCoordsFromTexture(planeColorImg.getTexture());
+
+	ofMesh& planeMesh = groundPlane.getMesh();
+	for(int i = 0; i < planeMesh.getNumVertices(); i++) {
+		glm::vec2 texcoord = planeMesh.getTexCoord(i);
+		int u = texcoord.x * (planeColorImg.getWidth() - 1);
+		int v = texcoord.y * (planeColorImg.getHeight() - 1);
+		ofColor col = planeColorImg.getColor(u, v);
+		planeMesh.addColor(col);
+	}
 
 	// FBO Setup //
 	//
-	MRTSettings.width = ofGetWidth();
-	MRTSettings.height = ofGetHeight();
+	MRTSettings.width = 1024;
+	MRTSettings.height = 1024;
 	MRTSettings.internalformat = GL_RGBA;
 	MRTSettings.useDepth = true;
 	MRTSettings.depthStencilAsTexture = true;
+	MRTSettings.textureTarget = GL_TEXTURE_2D; // OH MY GODDD THE OFFBO INITIALIZES WITH ARB TEXES HAHA!!!!!!!!! OF COURSE IT DOES!!! WHY NOT!!!
+
 
 	sceneFBO.allocate(MRTSettings);
 	sceneFBO.createAndAttachTexture(GL_RGBA, 1);
 	sceneFBO.createAndAttachTexture(GL_RGBA, 2);
 
 	// Intermediate Image FBO's are allocated with half resolution (NOT REALLY; they CAN be but lowkey for ease of use they're the same size.)
-	intermediateSettings.width = ofGetWidth();
-	intermediateSettings.height = ofGetHeight();
+	intermediateSettings.width = 1024;
+	intermediateSettings.height = 1024;
 	intermediateSettings.internalformat = GL_RGBA;
 	intermediateSettings.useDepth = true;
 	intermediateSettings.depthStencilAsTexture = true;
+	intermediateSettings.textureTarget = GL_TEXTURE_2D;
 
 	gaussBlurFBO.allocate(intermediateSettings);
 	bleedFBO.allocate(intermediateSettings);
@@ -82,7 +91,7 @@ void ofApp::setup() {
 
 	GLint err = glGetError();
 	if (err != GL_NO_ERROR){
-		ofLogNotice() << "Load Shader came back with GL error:	" << err;
+		ofLogNotice() << "ObjSpace Shader came back with GL error:	" << err;
 	}
 
 	gaussBlurPass = shared_ptr<ofShader>(new ofShader()); // This is a really simple shader so I just initialize once.
@@ -90,7 +99,7 @@ void ofApp::setup() {
 
 	err = glGetError();
 	if (err != GL_NO_ERROR){
-		ofLogNotice() << "Load Shader came back with GL error:	" << err;
+		ofLogNotice() << "Gaussian Blur Shader came back with GL error:	" << err;
 	}
 
 	hBleedPass = shared_ptr<ofShader>(new ofShader()); // This is a really simple shader so I just initialize once.
@@ -98,7 +107,7 @@ void ofApp::setup() {
 
 	err = glGetError();
 	if (err != GL_NO_ERROR){
-		ofLogNotice() << "Load Shader came back with GL error:	" << err;
+		ofLogNotice() << "Horionztal Bleed Shader came back with GL error:	" << err;
 	}
 
 	vBleedPass = shared_ptr<ofShader>(new ofShader()); // This is a really simple shader so I just initialize once.
@@ -106,7 +115,7 @@ void ofApp::setup() {
 
 	err = glGetError();
 	if (err != GL_NO_ERROR){
-		ofLogNotice() << "Load Shader came back with GL error:	" << err;
+		ofLogNotice() << "Vertical Bleed Shader came back with GL error:	" << err;
 	}
 
 	stylizePass = shared_ptr<ofShader>(new ofShader()); // This is a really simple shader so I just initialize once.
@@ -114,7 +123,7 @@ void ofApp::setup() {
 
 	err = glGetError();
 	if (err != GL_NO_ERROR){
-		ofLogNotice() << "Load Shader came back with GL error:	" << err;
+		ofLogNotice() << "Stylize Shader came back with GL error:	" << err;
 	}
 
 	isShaderDirty = false;
@@ -125,13 +134,13 @@ void ofApp::setup() {
 void ofApp::update() {
 	// Support reloading for the shader I'm currently working on.
 	if(isShaderDirty) {
-		ofLogNotice() << "Reloading Shader" << "\n";
-		stylizePass = shared_ptr<ofShader>(new ofShader());
-		stylizePass->load("shaders/stylize");
+		ofLogNotice() << "Reloading gaussblur Shader" << "\n";
+		gaussBlurPass = shared_ptr<ofShader>(new ofShader());
+		gaussBlurPass->load("shaders/gaussianBlur");
 
 		GLint err = glGetError();
 		if (err != GL_NO_ERROR){
-			ofLogNotice() << "Load Shader came back with GL error:	" << err;
+			ofLogNotice() << "Stylize Shader came back with GL error:	" << err;
 		}
 
 		isShaderDirty = false;
@@ -145,13 +154,13 @@ void ofApp::update() {
     fullscreenQuad.addTexCoord(glm::vec2(0, 0));
 
     fullscreenQuad.addVertex(glm::vec3(ofGetWidth(), 0, 0));
-    fullscreenQuad.addTexCoord(glm::vec2(ofGetWidth(), 0));
+    fullscreenQuad.addTexCoord(glm::vec2(1, 0));
 
     fullscreenQuad.addVertex(glm::vec3(0, ofGetHeight(), 0));
-    fullscreenQuad.addTexCoord(glm::vec2(0, ofGetHeight()));
+    fullscreenQuad.addTexCoord(glm::vec2(0, 1));
 
     fullscreenQuad.addVertex(glm::vec3(ofGetWidth(), ofGetHeight(), 0));
-    fullscreenQuad.addTexCoord(glm::vec2(ofGetWidth(), ofGetHeight()));
+    fullscreenQuad.addTexCoord(glm::vec2(1, 1));
 }
 
 void ofApp::drawScene() {
@@ -159,6 +168,11 @@ void ofApp::drawScene() {
 
 	sphere.draw();
 	controlSphere.draw();
+
+	ofPushMatrix();
+	ofRotateXDeg(90);
+	groundPlane.draw();
+	ofPopMatrix();
 
 	camera.end();
 }
@@ -177,7 +191,7 @@ void ofApp::draw(){
 	firstPass->setUniform1f("pixelSize", 1.0f / ofGetWidth());
 	firstPass->setUniform3f("cameraPos", camera.getGlobalPosition());
 	firstPass->setUniform3f("lightPosition", glm::vec3(5.0f, 5.0f ,5.0f));
-	firstPass->setUniformTexture("materialTex", orangeTex, 0);
+	firstPass->setUniformTexture("materialTex", orangeTex.getTexture(), 0);
 
 	drawScene();
 
@@ -189,9 +203,10 @@ void ofApp::draw(){
 	ofClear(0, 0, 0, 0);
 
 	gaussBlurPass->begin();
-	gaussBlurPass->setUniformTexture("image", sceneFBO.getTexture(0), 0);
+	gaussBlurPass->setUniformTexture("tex0", sceneFBO.getTexture(0), 0);
+	gaussBlurPass->setUniform2f("pixelSize", 1.0f / ofGetWidth(), 1.0f / ofGetHeight());
 
-	sceneFBO.getTexture(0).draw(0, 0);
+	fullscreenQuad.draw();
 
 	gaussBlurPass->end();
 	gaussBlurFBO.end();
@@ -205,6 +220,7 @@ void ofApp::draw(){
 	hBleedPass->setUniformTexture("colorImage", sceneFBO.getTexture(0), 1);
 	hBleedPass->setUniformTexture("depthImage", sceneFBO.getDepthTexture(), 2);
 	hBleedPass->setUniformTexture("controlImage", sceneFBO.getTexture(1), 3);
+	hBleedPass->setUniform1f("pixelSize", 1.0f / ofGetWidth());
 
 	fullscreenQuad.draw();
 
@@ -220,6 +236,7 @@ void ofApp::draw(){
 	vBleedPass->setUniformTexture("colorImage", bleedFBO.getTexture(0), 1);
 	vBleedPass->setUniformTexture("depthImage", sceneFBO.getDepthTexture(), 2);
 	vBleedPass->setUniformTexture("controlImage", bleedFBO.getTexture(1), 3);
+	vBleedPass->setUniform1f("pixelSize", 1.0f / ofGetHeight());
 
 	fullscreenQuad.draw();
 
@@ -240,6 +257,7 @@ void ofApp::draw(){
 
 	stylizePass->end();
 	stylizeFBO.end();
+
 
 	switch(drawToScreen) { // Switch various stage outputs
 		case 1:
@@ -284,7 +302,7 @@ void ofApp::keyPressed(int key){
 			camera.enableMouseInput();
 		break;
     case 's':
-		bleedFBO.getTexture(0).readToPixels(pixels);
+		sceneFBO.getTexture(0).readToPixels(pixels);
 		ofSaveImage(pixels, "fbo.png", OF_IMAGE_QUALITY_BEST);
 		break;
 	case 'R':

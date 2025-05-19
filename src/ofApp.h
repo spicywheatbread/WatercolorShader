@@ -32,7 +32,6 @@ class ofApp : public ofBaseApp{
 		ofSpherePrimitive sphere;
 		ofSpherePrimitive controlSphere;
 		ofPlanePrimitive groundPlane;
-		ofPlanePrimitive backPlane;
 		ofPlanePrimitive drawPlane;
 		ofMesh fullscreenQuad;
 		float planeSize = 100;
@@ -51,10 +50,9 @@ class ofApp : public ofBaseApp{
 		ofPixels pixels;
 
 		// Textures
-		ofTexture woodTex;
-		ofTexture orangeTex;
-		ofTexture blankTex;
+		ofImage orangeTex;
 		ofImage noiseTex;
+		ofImage planeColorImg;
 
 		// Shaders
 		shared_ptr<ofShader> firstPass;

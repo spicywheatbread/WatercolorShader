@@ -1,8 +1,9 @@
 #version 330
 
-uniform sampler2DRect colorImage;
-uniform sampler2DRect depthImage;
-uniform sampler2DRect controlImage;
+uniform sampler2D colorImage;
+uniform sampler2D depthImage;
+uniform sampler2D controlImage;
+uniform float pixelSize;
 
 layout (location = 0) out vec4 fragColor;
 layout (location = 1) out vec4 controlImageOutput;
@@ -19,7 +20,7 @@ const float depthThreshold = 0.001;
 void main() {
 	fragColor = vec4(0, 0, 0, 1);
 	for(int i = -10; i <= 10; i++) { // Range of vertices we will sample for the bleed
-		vec2 offsetTexcoord = vec2(vTexcoord.x + i, vTexcoord.y);
+		vec2 offsetTexcoord = vec2(vTexcoord.x + (i * pixelSize), vTexcoord.y);
 		if(texture(controlImage, vTexcoord).b > 0 || texture(controlImage, offsetTexcoord).b > 0) { // Control mask blue channel indicates if we allow bleeding
 			bool bleed = false;
 			bool sourceBehind = false;

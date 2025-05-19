@@ -1,9 +1,9 @@
 #version 330
 
-uniform sampler2DRect colorImage;
-uniform sampler2DRect blurImage;
-uniform sampler2DRect bleedImage;
-uniform sampler2DRect controlImage;
+uniform sampler2D colorImage;
+uniform sampler2D blurImage;
+uniform sampler2D bleedImage;
+uniform sampler2D controlImage;
 
 in vec2 vTexcoord;
 
