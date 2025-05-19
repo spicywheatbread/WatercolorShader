@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ofMain.h"
+#include "ofxAssimpModelLoader.h"
 
 class ofApp : public ofBaseApp{
 
@@ -32,9 +33,12 @@ class ofApp : public ofBaseApp{
 		ofSpherePrimitive sphere;
 		ofSpherePrimitive controlSphere;
 		ofPlanePrimitive groundPlane;
+		ofPlanePrimitive backPlane;
 		ofPlanePrimitive drawPlane;
 		ofMesh fullscreenQuad;
-		float planeSize = 100;
+		float planeSize = 150;
+		ofxAssimpModelLoader dogModel;
+
 
 		int drawToScreen; // Preview output switch var
 
@@ -48,6 +52,7 @@ class ofApp : public ofBaseApp{
 		ofFbo::Settings intermediateSettings;
 		ofFbo::Settings MRTSettings;
 		ofPixels pixels;
+		bool drawDog;
 
 		// Textures
 		ofImage orangeTex;
@@ -56,6 +61,7 @@ class ofApp : public ofBaseApp{
 		ofImage fabricTex;
 		ofImage paperTex;
 		ofImage paperNormalTex;
+		ofImage dogTex;
 
 		// Shaders
 		shared_ptr<ofShader> firstPass;

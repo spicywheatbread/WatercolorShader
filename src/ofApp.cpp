@@ -21,6 +21,8 @@ void ofApp::setup() {
 	fabricTex.load("textures/fabric.jpg");
 	paperTex.load("textures/paper.png");
 	paperNormalTex.load("textures/paper-normal.png");
+	dogTex.load("dog.png");
+	dogModel.load("dog.fbx");
 
 	camera.setPosition(0, 10, 30);
 
@@ -34,6 +36,7 @@ void ofApp::setup() {
 	controlSphere.setResolution(20);
 	controlSphere.setRadius(3);
 	controlSphere.mapTexCoordsFromTexture(noiseTex.getTexture());
+
 
 	ofMesh& sphereMesh = controlSphere.getMesh();
 	for(int i = 0; i < sphereMesh.getNumVertices(); i++) { // Set vertex colors for render parameters
@@ -55,9 +58,17 @@ void ofApp::setup() {
 		int u = texcoord.x * (planeColorImg.getWidth() - 1);
 		int v = texcoord.y * (planeColorImg.getHeight() - 1);
 		ofColor col = planeColorImg.getColor(u, v);
-		planeMesh.addColor(col);
+		float magnitude = glm::dot(glm::vec3(col.r, col.g, col.b), glm::vec3(0.33));
+		planeMesh.addColor(ofColor(col.r, col.g, col.b, magnitude));
 	}
 	groundPlane.mapTexCoordsFromTexture(fabricTex.getTexture());
+
+	backPlane.set(planeSize, planeSize, 50, 50);
+	backPlane.getMesh().setColorForIndices(0, backPlane.getMesh().getNumIndices(), ofColor(255, 255, 255, 255));
+
+	for(int i = 0; i < dogModel.getMesh(0).getNumVertices(); i++) {
+		dogModel.getMesh(0).addColor(ofColor(0, 0, 255, 255));
+	}
 
 	// FBO Setup //
 	//
@@ -174,6 +185,7 @@ void ofApp::update() {
 
     fullscreenQuad.addVertex(glm::vec3(ofGetWidth(), ofGetHeight(), 0));
     fullscreenQuad.addTexCoord(glm::vec2(1, 1));
+
 }
 
 void ofApp::drawScene() {
@@ -183,7 +195,7 @@ void ofApp::drawScene() {
 	controlSphere.draw();
 
 	ofPushMatrix();
-	ofTranslate(glm::vec3(0, 8, 0));
+	ofTranslate(glm::vec3(0, 0, 20));
 	orangeTex.bind();
 	sphere.draw();
 	controlSphere.draw();
@@ -193,9 +205,7 @@ void ofApp::drawScene() {
 	ofPushMatrix();
 	ofTranslate(glm::vec3(0, 0, -planeSize / 2));
 	ofScale(2);
-	fabricTex.bind();
-	groundPlane.draw();
-	fabricTex.unbind();
+	backPlane.draw();
 	ofPopMatrix();
 
 
@@ -205,6 +215,17 @@ void ofApp::drawScene() {
 	groundPlane.draw();
 	fabricTex.unbind();
 	ofPopMatrix();
+
+	if(drawDog) {
+		ofPushMatrix();
+		ofRotateXDeg(180);
+		ofScale(0.05);
+		dogTex.bind();
+		dogModel.drawFaces();
+		dogTex.unbind();
+		ofPopMatrix();
+	}
+
 
 	camera.end();
 }
@@ -347,9 +368,12 @@ void ofApp::keyPressed(int key){
 		else
 			camera.enableMouseInput();
 		break;
+	case 'd':
+		drawDog = !drawDog;
+		break;
     case 's':
-		sceneFBO.getTexture(0).readToPixels(pixels);
-		ofSaveImage(pixels, "fbo.png", OF_IMAGE_QUALITY_BEST);
+		stylizeFBO.getTexture().readToPixels(pixels);
+		ofSaveImage(pixels, "render_output.png", OF_IMAGE_QUALITY_BEST);
 		break;
 	case 'R':
 	case 'r':
