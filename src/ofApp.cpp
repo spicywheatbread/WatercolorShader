@@ -19,6 +19,8 @@ void ofApp::setup() {
 	planeColorImg.load("textures/planecolors.png");
 	noiseTex.load("textures/noise.jpg");
 	fabricTex.load("textures/fabric.jpg");
+	paperTex.load("textures/paper.png");
+	paperNormalTex.load("textures/paper-normal.png");
 
 	camera.setPosition(0, 10, 30);
 
@@ -68,6 +70,7 @@ void ofApp::setup() {
 
 
 	sceneFBO.allocate(MRTSettings);
+	paperFBO.allocate(MRTSettings);
 	sceneFBO.createAndAttachTexture(GL_RGBA, 1);
 	sceneFBO.createAndAttachTexture(GL_RGBA, 2);
 
@@ -128,6 +131,14 @@ void ofApp::setup() {
 		ofLogNotice() << "Stylize Shader came back with GL error:	" << err;
 	}
 
+	paperPass = shared_ptr<ofShader>(new ofShader()); // This is a really simple shader so I just initialize once.
+	paperPass->load("shaders/paper");
+
+	err = glGetError();
+	if (err != GL_NO_ERROR){
+		ofLogNotice() << "Paper Shader came back with GL error:	" << err;
+	}
+
 	isShaderDirty = false;
 	drawToScreen = 7;
 }
@@ -136,9 +147,9 @@ void ofApp::setup() {
 void ofApp::update() {
 	// Support reloading for the shader I'm currently working on.
 	if(isShaderDirty) {
-		ofLogNotice() << "Reloading objspace Shader" << "\n";
-		firstPass = shared_ptr<ofShader>(new ofShader());
-		firstPass->load("shaders/objSpace");
+		ofLogNotice() << "Reloading stylize Shader" << "\n";
+		stylizePass = shared_ptr<ofShader>(new ofShader());
+		stylizePass->load("shaders/stylize");
 
 		GLint err = glGetError();
 		if (err != GL_NO_ERROR){
@@ -263,6 +274,18 @@ void ofApp::draw(){
 	vBleedPass->end();
 	finalBleedFBO.end();
 
+	// Compute paper image for final processing
+	paperFBO.begin();
+	ofClear(0, 0, 0, 0);
+	paperPass->begin();
+	paperPass->setUniformTexture("paperDiff", paperTex, 0);
+	paperPass->setUniformTexture("paperNorm", paperNormalTex, 1);
+
+	fullscreenQuad.draw();
+
+	paperPass->end();
+	paperFBO.end();
+
 	// Final stylization pass: color bleed, edge darkening, paper tex
 	stylizeFBO.begin();
 	ofClear(0, 0, 0, 0);
@@ -272,6 +295,9 @@ void ofApp::draw(){
 	stylizePass->setUniformTexture("blurImage", gaussBlurFBO.getTexture(), 2);
 	stylizePass->setUniformTexture("bleedImage", finalBleedFBO.getTexture(0), 3);
 	stylizePass->setUniformTexture("controlImage", finalBleedFBO.getTexture(1), 4);
+	stylizePass->setUniformTexture("paperImage", paperFBO.getTexture(), 5);
+	stylizePass->setUniformTexture("paperTex", paperTex.getTexture(), 6);
+	stylizePass->setUniform2f("pixelSize", 1.0f / ofGetWidth(), 1.0f / ofGetHeight());
 
 	fullscreenQuad.draw();
 
