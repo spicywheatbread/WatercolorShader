@@ -136,9 +136,9 @@ void ofApp::setup() {
 void ofApp::update() {
 	// Support reloading for the shader I'm currently working on.
 	if(isShaderDirty) {
-		ofLogNotice() << "Reloading gaussblur Shader" << "\n";
-		gaussBlurPass = shared_ptr<ofShader>(new ofShader());
-		gaussBlurPass->load("shaders/gaussianBlur");
+		ofLogNotice() << "Reloading objspace Shader" << "\n";
+		firstPass = shared_ptr<ofShader>(new ofShader());
+		firstPass->load("shaders/objSpace");
 
 		GLint err = glGetError();
 		if (err != GL_NO_ERROR){
@@ -179,19 +179,21 @@ void ofApp::drawScene() {
 	orangeTex.unbind();
 	ofPopMatrix();
 
-	fabricTex.bind();
 	ofPushMatrix();
 	ofTranslate(glm::vec3(0, 0, -planeSize / 2));
 	ofScale(2);
+	fabricTex.bind();
 	groundPlane.draw();
+	fabricTex.unbind();
 	ofPopMatrix();
 
 
 	ofPushMatrix();
 	ofRotateXDeg(90);
+	fabricTex.bind();
 	groundPlane.draw();
-	ofPopMatrix();
 	fabricTex.unbind();
+	ofPopMatrix();
 
 	camera.end();
 }
