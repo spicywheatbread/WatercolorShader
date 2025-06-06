@@ -28,8 +28,8 @@ void main() {
 
 	fragColor = pow(fragColor, vec4(1 + texture(controlImage, paperDistortTexcoord).b * max));
 
-	// Paper granulation interpolates between color transmittance and color subtraction
-	float invertedPaper = 1.0f - paperValue.b;
+	// Paper granulation interpolates between color transmittance and color subtraction based on saturation of final color
+	float invertedPaper = 1.0f - paperValue.b; // blue channel holds height map
 	vec4 transmittance = fragColor * (fragColor - invertedPaper);
 	float density = 1.0f * invertedPaper;
 	fragColor = transmittance + (vec4(1.0) - fragColor) * pow(fragColor, 1 + texture(controlImage, vTexcoord) * density);

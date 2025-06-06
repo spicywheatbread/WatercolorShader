@@ -375,8 +375,14 @@ void ofApp::keyPressed(int key){
 		drawDog = !drawDog;
 		break;
     case 's':
+		sceneFBO.getTexture(0).readToPixels(pixels);
+		ofSaveImage(pixels, "base_scene.png", OF_IMAGE_QUALITY_BEST);
+		sceneFBO.getTexture(1).readToPixels(pixels);
+		ofSaveImage(pixels, "vertex_colors.png", OF_IMAGE_QUALITY_BEST);
+		finalBleedFBO.getTexture(0).readToPixels(pixels);
+		ofSaveImage(pixels, "intermediate_bleed.png", OF_IMAGE_QUALITY_BEST);
 		stylizeFBO.getTexture().readToPixels(pixels);
-		ofSaveImage(pixels, "render_output.png", OF_IMAGE_QUALITY_BEST);
+		ofSaveImage(pixels, "final_render.png", OF_IMAGE_QUALITY_BEST);
 		break;
 	case 'R':
 	case 'r':
