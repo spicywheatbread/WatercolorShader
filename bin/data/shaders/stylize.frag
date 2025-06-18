@@ -32,5 +32,5 @@ void main() {
 	float invertedPaper = 1.0f - paperValue.b; // blue channel holds height map
 	vec4 transmittance = fragColor * (fragColor - invertedPaper);
 	float density = 1.0f * invertedPaper;
-	fragColor = transmittance + (vec4(1.0) - fragColor) * pow(fragColor, 1 + texture(controlImage, vTexcoord) * density);
+	fragColor = transmittance + (vec4(1.0) - fragColor) * pow(fragColor, 1 + vec4(texture(controlImage, vTexcoord).g) * density * invertedPaper);
 }

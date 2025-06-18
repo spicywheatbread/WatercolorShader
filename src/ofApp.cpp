@@ -48,7 +48,7 @@ void ofApp::setup() {
 		int v = texcoord.y * (noiseTex.getHeight() - 1);
 		ofColor noise = noiseTex.getColor(u, v);
 		float magnitude = (noise.r + noise.g + noise.b + noise.a) / 4.0f;
-		sphereMesh.addColor(ofColor(0, 0, 255, magnitude));
+		sphereMesh.addColor(ofColor(0, 122, 255, magnitude));
 	}
 	controlSphere.mapTexCoordsFromTexture(orangeTex.getTexture());
 
@@ -73,10 +73,12 @@ void ofApp::setup() {
 		dogModel.getMesh(0).addColor(ofColor(0, 0, 255, 255));
 	}
 
+	int dimension = 1024;
+
 	// FBO Setup //
 	//
-	MRTSettings.width = 1024;
-	MRTSettings.height = 1024;
+	MRTSettings.width = dimension;
+	MRTSettings.height = dimension;
 	MRTSettings.internalformat = GL_RGBA;
 	MRTSettings.useDepth = true;
 	MRTSettings.depthStencilAsTexture = true;
@@ -89,8 +91,8 @@ void ofApp::setup() {
 	sceneFBO.createAndAttachTexture(GL_RGBA, 2);
 
 	// Intermediate Image FBO's are allocated with half resolution (NOT REALLY; they CAN be but lowkey for ease of use they're the same size.)
-	intermediateSettings.width = 1024;
-	intermediateSettings.height = 1024;
+	intermediateSettings.width = dimension;
+	intermediateSettings.height = dimension;
 	intermediateSettings.internalformat = GL_RGBA;
 	intermediateSettings.useDepth = true;
 	intermediateSettings.depthStencilAsTexture = true;
@@ -379,10 +381,14 @@ void ofApp::keyPressed(int key){
 		ofSaveImage(pixels, "base_scene.png", OF_IMAGE_QUALITY_BEST);
 		sceneFBO.getTexture(1).readToPixels(pixels);
 		ofSaveImage(pixels, "vertex_colors.png", OF_IMAGE_QUALITY_BEST);
+		gaussBlurFBO.getTexture().readToPixels(pixels);
+		ofSaveImage(pixels, "gauss_blur.png", OF_IMAGE_QUALITY_BEST);
 		finalBleedFBO.getTexture(0).readToPixels(pixels);
 		ofSaveImage(pixels, "intermediate_bleed.png", OF_IMAGE_QUALITY_BEST);
 		stylizeFBO.getTexture().readToPixels(pixels);
 		ofSaveImage(pixels, "final_render.png", OF_IMAGE_QUALITY_BEST);
+		paperFBO.getTexture().readToPixels(pixels);
+		ofSaveImage(pixels, "paper_output.png", OF_IMAGE_QUALITY_BEST);
 		break;
 	case 'R':
 	case 'r':
