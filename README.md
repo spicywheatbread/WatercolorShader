@@ -9,7 +9,7 @@ Ideally, I wanted to implement this system within a game engine such as Unreal E
 
 ### Summary
 For a high level overview of the system, the paper provides the following diagram:   
-![Pipeline Diagram](.exampleimages/WatercolorPipeline.png)  
+![Pipeline Diagram](./exampleimages/WatercolorPipeline.png)  
 #### First Pass
 The final style consists of a series of shaders that emulate different traits of the physical paint medium. In our first pass, we physically offset the position of our vertices to simulate errors from hand tremors (Vertex Shader) and perform basic shading calculations.   
 ![Result of First Pass](./exampleimages/base_scene.png) ![Vertex Color Image](./exampleimages/vertex_colors.png)  
