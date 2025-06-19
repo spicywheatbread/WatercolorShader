@@ -9,7 +9,7 @@ Ideally, I wanted to implement this system within a game engine such as Unreal E
 
 ### Summary
 For a high level overview of the system, the paper provides the following diagram:   
-![Pipeline Diagram](WatercolorPipeline.png)  
+![Pipeline Diagram](.exampleimages/WatercolorPipeline.png)  
 #### First Pass
 The final style consists of a series of shaders that emulate different traits of the physical paint medium. In our first pass, we physically offset the position of our vertices to simulate errors from hand tremors (Vertex Shader) and perform basic shading calculations.   
 ![Result of First Pass](./exampleimages/base_scene.png) ![Vertex Color Image](./exampleimages/vertex_colors.png)  
@@ -18,7 +18,7 @@ On the left is the scene output, and on the right is an image containing the ver
 In our intermediate phase, we aim to create three images that we use to create our final image. 
 First, there is a simple gaussian blur of our scene output using a 5x5 kernel.  
  More interestingly, the second image is a bleed algorithm as described by the paper. Simple bleeding doesn't accurately portray the properties of paint when wet & dry paint interact with one another in different layers. For example, in a normal bleed algorithm, a "dry" background will end up bleeding into the newer "wet" foreground. The "4D joint-bilateral bleed algorithm" amends this to allow artists to designate colors should be bled according to their depth in the image. This means that the designated bleed areas (vertex color blue channel) should be allowed to bleed, but the ground plane located in the background should not bleed into the spheres.   
-Our final image is a texture that compresses a paper's diffuse and normal textures into a single image. The xy vectors of the normal are stored in the rg channels, and the diffuse is used as a height value stored in the b channel. 
+Our final image is a texture that compresses a paper's diffuse and normal textures into a single image. The xy vectors of the normal are stored in the rg channels, and the diffuse is used as a height value stored in the b channel.   
 ![Result of gaussian pass](./exampleimages/gauss_blur.png)![Result of bleed pass](./exampleimages/intermediate_bleed.png)  ![Result of paper pass](./exampleimages/paper_output.png)
 
 #### Final Stylization Pass
