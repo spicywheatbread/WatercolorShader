@@ -29,6 +29,7 @@ Once all the intermediate images have been made, the final pass combines them fo
 I was super happy on each step that I managed to even get an image output! However, there is much room for improvement within this project since I was rushing to get a baseline completed for project submission.   
 Firstly, and most importantly, I didn't test my implementation very thoroughly. This was because of my lack of expertise in modeling. I did create a very simple 3D model of my dog, but it doesn't make great use of the vertex colors for customization. Neither did I test animations or complex scenes.  
 ![Result of final pass](./exampleimages/final_render_dog.png)  
+(That boxy thing is supposed to be a dog. The black parts are his muzzle and ears. I have room for improvement in modeling.)  
 ### Efficiency
 In addition to a lack of real-world testing, I think there's much room for efficiency improvement in the code, since this is one of my first times creating a shader like this. It achieved around ~90fps on my laptop, but that's on a VERY basic scene rendering two planes and some spheres. On a complex scene, that sounds like it would struggle greatly.  
 
